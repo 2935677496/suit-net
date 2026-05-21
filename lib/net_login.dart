@@ -2,10 +2,11 @@ import 'reg_exp.dart';
 import 'aes_crypto.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
+import 'file_io.dart';
 import 'dart:convert';
 
 
-Future<dynamic> main() async {
+Future<bool> netLogin() async {
   Map<String, dynamic> headers = {
       
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -78,7 +79,9 @@ Future<dynamic> main() async {
           r'</p>',
         );
         if (croypto.isEmpty) throw Exception('Cannot get croypto');
-        final password = loginEncrypt(r'fuckU#6462', croypto);
+        final secret = await getPswd();
+    final deSecret = xorDecrypt(secret);
+    final password = loginEncrypt(deSecret, croypto);
         Map<String, String> bodyParams = {
           'username': '2508210211',
           'type': 'UsernamePassword',
@@ -111,7 +114,8 @@ headers.addAll({'cookie': 'SESSION=$session'});//add cookie
       data: {"sessionId": sessionId, "service":"电信宽带"},
     );
     print(response.data);
-    return response.data;
+    //return response.data;
+    return response.statusCode == 200 ? true : false;
       }//cas is not empty
     } else {
       print('can not redirect');

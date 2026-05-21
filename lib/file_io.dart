@@ -1,85 +1,58 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
 
-String winDir = '', androDir = '';
-String? userHome = Platform.environment['USERPROFILE'];
-Directory winAppDir = Directory('$userHome\\AppData\\Roaming\\suit');
-File appJson = File('$userHome\\AppData\\Roaming\\suit\\config.json');
-
-Future<String> checkSysType() async {
-  final dir = Directory('C:\\Windows');
-  bool exists = await dir.exists();
-  if (exists) {
-    return 'Windows';
-  } else {
-    return 'Android';
+Future<bool> checkJsonKey() async {
+  Directory configDir = await getApplicationSupportDirectory();
+  final file = File('${configDir.path}/config.json');
+   try {
+    // 1. 读取文件内容（字符串）
+    final jsonString = await file.readAsString();
+    // 2. 反序列化：JSON字符串 → Dart Map/List
+    final Map<String, dynamic> jsonData = jsonDecode(jsonString);
+    final String? value = jsonData['password'];
+    return value != null ? true : false;
+   } catch (e) {
+    print('读取/解析 JSON 失败: $e');
+    return false;
   }
 }
 
-Future<bool> checkFile() async {
-  try {
-    if (await appJson.exists()) {
-      return true;
-    } else {
-      await appJson.create(recursive: true);
-      await appJson.writeAsString(r'{}');
-      return false;
-    }
-  } on FileSystemException catch (e) {
-    throw Exception('文件检查失败: ${e.message}${e.path != null ? ' (路径: ${e.path})' : ''}');
-  } catch (e) {
-    throw Exception('文件检查失败: $e');
+Future<String> getPswd() async {
+  Directory configDir = await getApplicationSupportDirectory();
+  final file = File('${configDir.path}/config.json');
+   try {
+    // 1. 读取文件内容（字符串）
+    final jsonString = await file.readAsString();
+    
+    // 2. 反序列化：JSON字符串 → Dart Map/List
+    final Map<String, dynamic> jsonData = jsonDecode(jsonString);
+    return jsonData['password'];
+   } catch (e) {
+    print('读取/解析 JSON 失败: $e');
+    return '';
   }
 }
 
-Future<String> storeData(Map<String, dynamic> data) async {
+/// 将 Dart 对象写入 JSON 文件
+Future<void> savePswd(Map<String, dynamic> newData, List<String> updateList) async {
+  Directory configDir = await getApplicationSupportDirectory();
+  final file = File('${configDir.path}/config.json');
+  final originalJson = await file.readAsString();//原始数据字符串
+  Map<String, dynamic> originalData = jsonDecode(originalJson);//原始（旧）配置
   try {
-    if (!await appJson.exists()) {
-      await appJson.create(recursive: true);
-      await appJson.writeAsString(r'{}');
+    //序列化：Dart 对象 → 格式化的 JSON 字符串（美观输出）
+    final newJsonString = JsonEncoder.withIndent('  ').convert(newData);
+    Map<String, dynamic> toWriteData = jsonDecode(newJsonString);
+    for (int i = 0; i < updateList.length; i++) {
+      originalData[updateList[i]] = toWriteData[updateList[i]];//对原有数据进行修改
     }
-
-    final jsonString = await appJson.readAsString();
-    final Map<String, dynamic> jsonMap = jsonString.trim().isEmpty
-        ? <String, dynamic>{}
-        : Map<String, dynamic>.from(jsonDecode(jsonString));
-
-    jsonMap.addAll(data);
-
-    final updatedJson = const JsonEncoder.withIndent('  ').convert(jsonMap);
-    await appJson.writeAsString(updatedJson);
-    return updatedJson;
-  } on FileSystemException catch (e) {
-    throw Exception('写入配置文件失败: ${e.message}${e.path != null ? ' (路径: ${e.path})' : ''}');
-  } on FormatException catch (e) {
-    throw Exception('配置文件 JSON 格式错误: ${e.message}');
+    //序列化：Dart 对象 → 格式化的 JSON 字符串（美观输出）
+    final jsonString = JsonEncoder.withIndent('  ').convert(originalData);
+    //写入文件（覆盖原有内容）
+    await file.writeAsString(jsonString);
+    print('\n===== 写入 JSON 成功 =====');
   } catch (e) {
-    throw Exception('保存数据失败: $e');
-  }
-}
-
-Future<String> readJson(String parameter) async {
-  try {
-    if (!await appJson.exists()) {
-      throw Exception('配置文件不存在: ${appJson.path}');
-    }
-
-    final jsonString = await appJson.readAsString();
-    final Map<String, dynamic> jsonMap = jsonString.trim().isEmpty
-        ? <String, dynamic>{}
-        : Map<String, dynamic>.from(jsonDecode(jsonString));
-
-    if (!jsonMap.containsKey(parameter)) {
-      throw Exception('配置项不存在: $parameter');
-    }
-
-    final value = jsonMap[parameter];
-    return value?.toString() ?? '';
-  } on FileSystemException catch (e) {
-    throw Exception('读取配置文件失败: ${e.message}${e.path != null ? ' (路径: ${e.path})' : ''}');
-  } on FormatException catch (e) {
-    throw Exception('配置文件 JSON 格式错误: ${e.message}');
-  } catch (e) {
-    throw Exception('读取配置项失败: $e');
+    print('写入 JSON 失败: $e');
   }
 }

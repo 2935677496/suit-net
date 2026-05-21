@@ -114,3 +114,15 @@ String loginDecrypt(String encryptedText, String base64Key) {
     throw Exception('登录解密失败: $e');
   }
 }
+
+// 解密：输入 Base64 → 输出原始字符串
+String xorDecrypt(String encryptedBase64) {
+  if (encryptedBase64.isEmpty) throw Exception('密文为空');
+  final encryptedBytes = base64Decode(encryptedBase64);
+  final keyBytes = utf8.encode('YUdWc2JHOD0=');
+  final decryptedBytes = List<int>.generate(encryptedBytes.length, (i) {
+    return encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+  });
+
+  return utf8.decode(decryptedBytes); // 返回明文
+}

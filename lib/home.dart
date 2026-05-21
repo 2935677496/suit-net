@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:suit_net/file_io.dart';
+import 'cas_login.dart';
+import 'net_login.dart';
 import 'functions.dart';
-
+import 'dart:io';
 // Define the authentication states
 enum AuthStatus { failed, disconnected, connecting, connected }
 
@@ -14,7 +16,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   AuthStatus _currentState = AuthStatus.failed;
-
+  final deviceName = Platform.isAndroid ? 'chenc' : 'chenAnd';//决定下线的设备
   Future<void> _checkStatus() async {
     final status = await captiveCheck('int');
     setState(() {
@@ -37,9 +39,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _checkStatus(); //初始化时检测网络
   }
-void startLogin() async {
-  
-}
+
   // Method to simulate state changes
   void _toggleAuthStatus() {
     setState(() {
@@ -64,6 +64,30 @@ void startLogin() async {
     while (true) {
       switch (_currentState) {
         case AuthStatus.disconnected:
+        _toggleAuthStatus();//转换状态为connecting
+        if (! await checkJsonKey()) {
+
+        await selfLogin();
+        final bool result = await kickOut(deviceName);//根据设备变化
+        if (result) {
+          print('kick success');
+          final bool netResult = await netLogin();
+          if (netResult) {
+            print('Login success');
+            setState(() {
+              _currentState = AuthStatus.connected;
+            });
+          } else {
+            _checkStatus();
+          }
+        } 
+        } else {
+          print('Password not found in config');
+          _showMyDialog('Error', '密码缺失, 请先获取配置再试', 'getconfig');
+          setState(() {
+              _currentState = AuthStatus.disconnected;
+            });
+        }
           break;
 
         case AuthStatus.connected:
@@ -81,20 +105,20 @@ void startLogin() async {
       break; //To prevent bad loop
     }
   }
-
-  Future<void> _showMyDialog() async {
+///Function 1 : 'getconfig', 2 : 'logout'
+  Future<void> _showMyDialog(String title, String text1, String doWhat) async {
     return showDialog<void>(
       context: context,
       // 设置为 false 可以禁止点击弹窗外区域关闭，防止用户误操作[citation:4]
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('提示'),
-          content: const SingleChildScrollView(
+          title: Text(title),
+          content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('这是一个简单的提示信息。'),
-                Text('你可以在这里写很多内容，它会自动滚动。'),
+                Text(text1),
+                //Text('你可以在这里写很多内容，它会自动滚动。'),
               ],
             ),
           ),
@@ -111,8 +135,13 @@ void startLogin() async {
               onPressed: () {
                 // 点击后关闭弹窗并返回 'OK'
                 Navigator.of(context).pop('OK');
-                print('click ok');
-                //_changeStatus();
+               //function here
+               switch (doWhat) {
+                case 'getconfig':
+                break;
+                case 'logout':
+                break;
+               }
               },
             ),
           ],
@@ -210,7 +239,7 @@ void startLogin() async {
             ),
             const SizedBox(height: 40),
             GestureDetector(
-              onTap: _toggleAuthStatus,
+              onTap: _currentState == AuthStatus.connecting ? null : _changeStatus,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 width: 200,

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'reg_exp.dart';
+import 'package:dio/dio.dart';
 
 // 退出 APP
 // SystemNavigator.pop();
@@ -25,6 +26,7 @@ if (socketResult.length > 600) {
       status = 0;
       return switch (type) {'String' => redirUrl, 'int' => status, _ => ''};
 } else {
+  
   return 1;
 }
  } catch (e) {
@@ -32,6 +34,5 @@ if (socketResult.length > 600) {
   print(e.toString());
   return 2;
  }
-  
   
 }
