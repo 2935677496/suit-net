@@ -4,6 +4,7 @@ import 'cas_login.dart';
 import 'net_login.dart';
 import 'functions.dart';
 import 'dart:io';
+
 // Define the authentication states
 enum AuthStatus { failed, disconnected, connecting, connected }
 
@@ -16,7 +17,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   AuthStatus _currentState = AuthStatus.failed;
-  final deviceName = Platform.isAndroid ? 'chenc' : 'chenAnd';//决定下线的设备
+  //TODO
+  final deviceName = Platform.isAndroid ? 'chenc1' : 'chenc'; //决定下线的设备
+
   Future<void> _checkStatus() async {
     final status = await captiveCheck('int');
     setState(() {
@@ -38,6 +41,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _checkStatus(); //初始化时检测网络
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showToast(deviceName);
+    });
   }
 
   // Method to simulate state changes
@@ -64,35 +70,46 @@ class _HomePageState extends State<HomePage> {
     while (true) {
       switch (_currentState) {
         case AuthStatus.disconnected:
-        _toggleAuthStatus();//转换状态为connecting
-        if (! await checkJsonKey()) {
-
-        await selfLogin();
-        final bool result = await kickOut(deviceName);//根据设备变化
-        if (result) {
-          print('kick success');
-          final bool netResult = await netLogin();
-          if (netResult) {
-            print('Login success');
-            setState(() {
-              _currentState = AuthStatus.connected;
-            });
+          _toggleAuthStatus(); //转换状态为connecting
+          if (await checkJsonKey()) {
+            //A
+            final bool casResult = await selfLogin();
+            if (!casResult) {
+              //B
+              print('CAS Login failed');
+            } else {
+              //CAS Login success //B
+              final bool result = await kickOut(deviceName); //根据设备变化
+              if (result) {
+                //kick out success //C
+                print('kick success');
+                final bool netResult = await netLogin();
+                if (netResult) {
+                  print('Login success');
+                  setState(() {
+                    _currentState = AuthStatus.connected;
+                  });
+                } else {
+                  _checkStatus();
+                }
+              } else {
+                //C
+                print('net login failed');
+              }
+            } //CAS Login success //B`
           } else {
-            _checkStatus();
-          }
-        } 
-        } else {
-          print('Password not found in config');
-          _showMyDialog('Error', '密码缺失, 请先获取配置再试', 'getconfig');
-          setState(() {
+            //Can not found key  //A
+            print('Password not found in config');
+            _showMyDialog('Error', '密码缺失, 请先获取配置再试', 'getconfig');
+            setState(() {
               _currentState = AuthStatus.disconnected;
             });
-        }
+          }
           break;
 
         case AuthStatus.connected:
           //First判断是不是校园网，获取sessionId，下线
-          //http.casLogin('self');
+          _showMyDialog('提示', '确定要下线吗？', 'logout');
           break;
         case AuthStatus.failed:
           setState(() {
@@ -105,7 +122,8 @@ class _HomePageState extends State<HomePage> {
       break; //To prevent bad loop
     }
   }
-///Function 1 : 'getconfig', 2 : 'logout'
+
+  ///Function 1 : 'getconfig', 2 : 'logout'
   Future<void> _showMyDialog(String title, String text1, String doWhat) async {
     return showDialog<void>(
       context: context,
@@ -135,13 +153,17 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 // 点击后关闭弹窗并返回 'OK'
                 Navigator.of(context).pop('OK');
-               //function here
-               switch (doWhat) {
-                case 'getconfig':
-                break;
-                case 'logout':
-                break;
-               }
+                //function here
+                switch (doWhat) {
+                  case 'getconfig':
+                    _getConfig();
+                    break;
+                  case 'logout':
+                    _logout();
+                    break;
+                  default:
+                    print('拼写错了兄弟');
+                }
               },
             ),
           ],
@@ -150,10 +172,33 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // 成功提示
+  void _showToast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: Duration(seconds: 2)),
+    );
+  }
+
+  void _getConfig() async {
+    final bool downloadResult = await downloadConfig();
+    final msg = downloadResult ? '成功' : '失败';
+    _showToast(msg);
+  }
+
+  void _logout() async {
+    final sessionId = await getSessionId();
+    final bool logoutResult = await selfLogout(sessionId);
+    final msg = logoutResult ? '下线成功' : '下线失败';
+    _showToast(msg);
+    setState(() {
+      _currentState = AuthStatus.disconnected;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Define properties based on the current state
-    
+
     String statusText;
     IconData icon;
     Color stateColor;
@@ -194,33 +239,31 @@ class _HomePageState extends State<HomePage> {
         title: const Text('校园网认证'),
         backgroundColor: Colors.white, // Keep app bar light
         // 右侧按钮放在 actions 里
-          actions: [
-            // 下拉菜单按钮
-            PopupMenuButton<String>(
-              // 菜单图标（默认三个点）
-              icon: const Icon(Icons.more_vert),
-              
-              // 点击菜单项回调
-              onSelected: (String value) {
-                // 根据 value 处理点击事件
-                switch (value) {
-                  case 'getconfig':
-                    print('点击了设置');
-                    break;
-                  default:
-                }
-              },
+        actions: [
+          // 下拉菜单按钮
+          PopupMenuButton<String>(
+            // 菜单图标（默认三个点）
+            icon: const Icon(Icons.more_vert),
+
+            // 点击菜单项回调
+            onSelected: (String value) {
+              // 根据 value 处理点击事件
+              switch (value) {
+                case 'getconfig':
+                  _showMyDialog('提示', '确定要获取配置吗', 'getconfig');
+                  break;
+                default:
+              }
+            },
             // 定义下拉菜单项
-              itemBuilder: (BuildContext context) => [
-                const PopupMenuItem(
-                  value: 'getconfig', // 唯一标识
-                  child: Text('获取配置文件'),
-                ),
-                
-                
-              ],
-            ),
-          ],
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(
+                value: 'getconfig', // 唯一标识
+                child: Text('获取配置文件'),
+              ),
+            ],
+          ),
+        ],
       ),
       backgroundColor: Colors.grey[50], // Light background for the body
       body: Center(
@@ -239,7 +282,9 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 40),
             GestureDetector(
-              onTap: _currentState == AuthStatus.connecting ? null : _changeStatus,
+              onTap: _currentState == AuthStatus.connecting
+                  ? null
+                  : _changeStatus,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 width: 200,

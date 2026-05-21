@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
 import 'reg_exp.dart';
-import 'package:dio/dio.dart';
 
 // 退出 APP
 // SystemNavigator.pop();

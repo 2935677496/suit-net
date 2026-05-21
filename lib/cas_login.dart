@@ -149,7 +149,7 @@ class CasSession {
 }
 String onceCookie = '';
 
-Future<void> selfLogin() async {
+Future<bool> selfLogin() async {
   final session = CasSession(baseUrl: 'http://10.10.16.58/');
   await session.clearCookies();
 
@@ -162,7 +162,7 @@ Future<void> selfLogin() async {
 
     if (casResponse.isEmpty) {
       print('CAS response is empty');
-      return;
+      return false;
     }
 
     final String execution = matchBetween(
@@ -207,8 +207,10 @@ Future<void> selfLogin() async {
     print('cookiesType: ${cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ').runtimeType}');
     onceCookie = cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
     print('once cookie: $onceCookie');
+    return true;
   } catch (e) {
     print('登录异常：$e');
+    return false;
   }
 }
 Future<bool> kickOut(String deviceName) async {

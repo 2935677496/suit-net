@@ -5,7 +5,7 @@ import 'dart:io';
 import 'file_io.dart';
 import 'dart:convert';
 
-
+String sessionId = '';
 Future<bool> netLogin() async {
   Map<String, dynamic> headers = {
       
@@ -53,7 +53,7 @@ Future<bool> netLogin() async {
       jSessionId = matchBetween(jSessionId, 'JSESSIONID=', r';');
       print('redirect url: $portalUrl');
       print('JSESSIONID=$jSessionId');
-      final String sessionId = matchBetween(portalUrl, 'sessionId=', '&');
+      sessionId = matchBetween(portalUrl, 'sessionId=', '&');
       Uri uri = Uri.parse(portalUrl);
       Map<String, String> params = uri.queryParameters;
       String queryParams = 'userIp=${params['userIp']}&userMac=${params['userMac']}&nasIp=${params['nasIp']}&customPageId=${params['customPageId']}';
@@ -79,7 +79,7 @@ Future<bool> netLogin() async {
           r'</p>',
         );
         if (croypto.isEmpty) throw Exception('Cannot get croypto');
-        final secret = await getPswd();
+        final String secret = await getPswd();
     final deSecret = xorDecrypt(secret);
     final password = loginEncrypt(deSecret, croypto);
         Map<String, String> bodyParams = {
@@ -115,6 +115,9 @@ headers.addAll({'cookie': 'SESSION=$session'});//add cookie
     );
     print(response.data);
     //return response.data;
+    await saveSessionId(sessionId);
+    print('写入结果:');
+    print(await readJson());
     return response.statusCode == 200 ? true : false;
       }//cas is not empty
     } else {
@@ -123,5 +126,31 @@ headers.addAll({'cookie': 'SESSION=$session'});//add cookie
     }
   } catch (e) {
     throw Exception(e.toString());
+  }
+}
+
+Future<bool> selfLogout(String sessionId) async {
+  final dio = Dio();
+  try {
+  final response = await dio.post(
+    'http://10.10.16.58/eportal/network/offline',
+    data: {'sessionId': sessionId},
+    options: Options(
+      headers: {
+        'isPortal': true,
+        'Content-Type': 'application/json',
+        'Priority': 'u=0',
+}
+    )
+    );
+    if (response.statusCode == 200) {
+      print('下线成功');
+      return true;
+    } else {
+      return false;
+    }
+  } catch (e) {
+    print('logout fail: ${e.toString()}');
+    return false;
   }
 }
