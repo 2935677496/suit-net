@@ -18,8 +18,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   AuthStatus _currentState = AuthStatus.failed;
   //TODO
-  final deviceName = Platform.isAndroid ? 'chenc1' : 'chenc'; //决定下线的设备
-
+  final deviceName = Platform.isAndroid ? 'chenc' : 'chenAnd'; //决定下线的设备
+  final deviceType = Platform.isAndroid ? 'Android' : 'Windows';
   Future<void> _checkStatus() async {
     final status = await captiveCheck('int');
     setState(() {
@@ -40,9 +40,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _checkStatus(); //初始化时检测网络
+    _checkStatus(); //初始化时检测网络 (不需要await)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showToast(deviceName);
+      _showToast(deviceType);
     });
   }
 
@@ -90,7 +90,7 @@ class _HomePageState extends State<HomePage> {
                     _currentState = AuthStatus.connected;
                   });
                 } else {
-                  _checkStatus();
+                  _checkStatus(); //不依赖结果不用await,不需要按顺序执行
                 }
               } else {
                 //C

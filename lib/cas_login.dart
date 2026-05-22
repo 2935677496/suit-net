@@ -265,6 +265,7 @@ final kickResult = await session.postUri(
     },
     data: {'onlineUserUuids': [uuid]},
 );
+if (kickResult.statusCode == 200) print('Successfully kick $deviceName');
 return kickResult.statusCode == 302 ? false : true;
     }
     
