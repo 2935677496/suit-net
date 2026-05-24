@@ -18,7 +18,15 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
-
+    signingConfigs {
+        create("release") {
+            // 你的 jks 文件名（必须放在 android/app/ 下）
+            keyAlias = "myapp"
+            keyPassword = "2508210211"
+            storeFile = file("myapp.jks") // 改成你的jks文件名
+            storePassword = "2508210211"
+        }
+    }
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.suit_net"
@@ -28,14 +36,19 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
     }
-
+    
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true        // 代码压缩
+            isShrinkResources = true      // 资源压缩
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
         }
+        
     }
 }
 

@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:suit_net/home.dart';
+import 'package:path_provider/path_provider.dart';
 
-
-void main() {
+class AppConfig {
+  static String cookiePath = '';
+}
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  // 启动时一次性获取好
+  final dir1 = await getApplicationSupportDirectory();
+  AppConfig.cookiePath = "${dir1.path}/cookies";
   runApp(const MyApp());
   
 }

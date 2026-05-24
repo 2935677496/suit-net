@@ -1,14 +1,22 @@
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:path_provider/path_provider.dart';
 import 'aes_crypto.dart';
 import 'file_io.dart';
 import 'reg_exp.dart';
+import 'dart:io';
+
+String dir4Every() {
+  String? username = Platform.environment['USERNAME'];
+  final String winDir = username != null ? 'C:\\Users\\$username\\AppData\\Roaming\\suit\\cookie' : 'cookie';
+  return Platform.isAndroid ? '/data/user/0/com.example.suie_net/files/cookie' : winDir;
+}
 
 class CasSession {
   CasSession({
     required this.baseUrl,
-    String cookiePath = 'cookies',
+    required this.cookiePath,
     Duration connectTimeout = const Duration(seconds: 5),
     Map<String, dynamic>? baseHeaders,
   })  : _defaultHeaders = {
@@ -39,6 +47,7 @@ class CasSession {
   }
 
   final String baseUrl;
+  final String cookiePath;
   final Dio _dio;
   final PersistCookieJar _cookieJar;
   final Map<String, dynamic> _defaultHeaders;
@@ -150,7 +159,8 @@ class CasSession {
 String onceCookie = '';
 
 Future<bool> selfLogin() async {
-  final session = CasSession(baseUrl: 'http://10.10.16.58/');
+  final cookieDir = await getCookiePath();
+  final session = CasSession(baseUrl: 'http://10.10.16.58/', cookiePath: cookieDir);
   await session.clearCookies();
 
   try {
@@ -210,11 +220,13 @@ Future<bool> selfLogin() async {
     return true;
   } catch (e) {
     print('登录异常：$e');
+
     return false;
   }
 }
 Future<bool> kickOut(String deviceName) async {
-  final session = CasSession(baseUrl: 'http://10.10.16.58/');
+  final cookieDir = await getCookiePath();
+  final session = CasSession(baseUrl: 'http://10.10.16.58/', cookiePath: cookieDir);
   try {
   Uri deviceUri = Uri.parse('http://10.10.16.58/sam/api/userself/devices');
   Uri kickDeviceUri = Uri.parse('http://10.10.16.58/sam/api/userself/devices/kick-offline/batch');

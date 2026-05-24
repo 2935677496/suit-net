@@ -3,6 +3,13 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 
+Future<String> getCookiePath() async {
+  Directory configDir = await getApplicationSupportDirectory();
+  final path = '${configDir.path}/cookie';
+  return path;
+}
+
+
 Future<bool> checkJsonKey() async {
   Directory configDir = await getApplicationSupportDirectory();
   final file = File('${configDir.path}/config.json');
@@ -102,13 +109,13 @@ Future<void> saveSessionId(String sessionId) async {
 Future<bool> downloadConfig() async {
   final dio = Dio();
   Directory configDir = await getApplicationSupportDirectory();
-  final file = File('${configDir.path}/config.json');
+  final filePath = '${configDir.path}/config.json';
   try {
     print("开始下载...");
 
     await dio.download(
       'https://gitee.com/qshee/config/releases/download/config/config.json',
-      file,
+      filePath,
       // 下载进度
       onReceiveProgress: (received, total) {
         if (total != -1) {

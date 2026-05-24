@@ -77,6 +77,7 @@ class _HomePageState extends State<HomePage> {
             if (!casResult) {
               //B
               print('CAS Login failed');
+              _checkStatus();
             } else {
               //CAS Login success //B
               final bool result = await kickOut(deviceName); //根据设备变化
@@ -95,6 +96,7 @@ class _HomePageState extends State<HomePage> {
               } else {
                 //C
                 print('net login failed');
+                _checkStatus();
               }
             } //CAS Login success //B`
           } else {
@@ -190,9 +192,13 @@ class _HomePageState extends State<HomePage> {
     final bool logoutResult = await selfLogout(sessionId);
     final msg = logoutResult ? '下线成功' : '下线失败';
     _showToast(msg);
+    if (logoutResult) {
     setState(() {
       _currentState = AuthStatus.disconnected;
     });
+    } else {
+      _checkStatus();
+    }
   }
 
   @override
