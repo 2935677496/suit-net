@@ -27,7 +27,6 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
-.tocodex/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
@@ -46,4 +45,9 @@ app.*.map.json
 /android/app/release
 android/*.jks
 android/key.properties
+
+#vibe coding
+/.tocodex
+/tocodex-docs
+/cookies
 
